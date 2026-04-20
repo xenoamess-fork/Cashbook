@@ -19,6 +19,7 @@ package cn.wj.android.cashbook.core.testing.data
 import cn.wj.android.cashbook.core.model.enums.AssetClassificationEnum
 import cn.wj.android.cashbook.core.model.enums.ClassificationTypeEnum
 import cn.wj.android.cashbook.core.model.enums.RecordTypeCategoryEnum
+import cn.wj.android.cashbook.core.model.enums.ScheduleFrequencyEnum
 import cn.wj.android.cashbook.core.model.enums.TypeLevelEnum
 import cn.wj.android.cashbook.core.model.model.AssetModel
 import cn.wj.android.cashbook.core.model.model.BooksModel
@@ -26,6 +27,7 @@ import cn.wj.android.cashbook.core.model.model.ImageModel
 import cn.wj.android.cashbook.core.model.model.RecordModel
 import cn.wj.android.cashbook.core.model.model.RecordTypeModel
 import cn.wj.android.cashbook.core.model.model.RecordViewsModel
+import cn.wj.android.cashbook.core.model.model.ScheduleModel
 import cn.wj.android.cashbook.core.model.model.TagModel
 
 /**
@@ -187,4 +189,38 @@ fun createRecordViewsModel(
     relatedRecord = relatedRecord,
     relatedAmount = relatedAmount,
     recordTime = recordTime,
+)
+
+fun createScheduleModel(
+    id: Long = -1L,
+    booksId: Long = 1L,
+    typeId: Long = 1L,
+    assetId: Long = 1L,
+    amount: Long = 1000L,
+    charges: Long = 0L,
+    concessions: Long = 0L,
+    remark: String = "",
+    typeCategory: RecordTypeCategoryEnum = RecordTypeCategoryEnum.EXPENDITURE,
+    frequency: ScheduleFrequencyEnum = ScheduleFrequencyEnum.MONTHLY,
+    startDate: Long = 1704067200000L, // 2024-01-01 00:00:00 UTC+8
+    endDate: Long? = null,
+    recordTime: Long = 1704067200000L,
+    lastExecutedDate: Long? = null,
+    enabled: Boolean = true,
+): ScheduleModel = ScheduleModel(
+    id = id,
+    booksId = booksId,
+    typeId = typeId,
+    assetId = assetId,
+    amount = amount,
+    charges = charges,
+    concessions = concessions,
+    remark = remark,
+    typeCategory = typeCategory,
+    frequency = frequency,
+    startDate = startDate,
+    endDate = endDate,
+    recordTime = recordTime,
+    lastExecutedDate = lastExecutedDate,
+    enabled = enabled,
 )
