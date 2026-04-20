@@ -80,7 +80,7 @@ import java.util.Calendar
 @Composable
 internal fun EditScheduleRoute(
     scheduleId: Long,
-    typeListContent: @Composable (currentTypeCategoryCode: Int, currentTypeId: Long, onTypeChange: (Long, Int) -> Unit) -> Unit,
+    typeListContent: @Composable (typeCategory: RecordTypeCategoryEnum, currentTypeId: Long, onTypeChange: (Long) -> Unit) -> Unit,
     assetBottomSheetContent: @Composable (currentTypeId: Long, selectedAssetId: Long, onAssetChange: (Long) -> Unit) -> Unit,
     onRequestPopBackStack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -127,7 +127,7 @@ internal fun EditScheduleRoute(
 internal fun EditScheduleScreen(
     isCreate: Boolean,
     uiState: EditScheduleUiState,
-    typeListContent: @Composable (currentTypeCategoryCode: Int, currentTypeId: Long, onTypeChange: (Long, Int) -> Unit) -> Unit,
+    typeListContent: @Composable (typeCategory: RecordTypeCategoryEnum, currentTypeId: Long, onTypeChange: (Long) -> Unit) -> Unit,
     assetBottomSheetContent: @Composable (currentTypeId: Long, selectedAssetId: Long, onAssetChange: (Long) -> Unit) -> Unit,
     bottomSheetType: EditScheduleBottomSheetEnum,
     onBottomSheetDismiss: () -> Unit,
@@ -235,10 +235,10 @@ internal fun EditScheduleScreen(
                         EditScheduleBottomSheetEnum.TYPE -> {
                             if (uiState is EditScheduleUiState.Success) {
                                 typeListContent(
-                                    uiState.typeCategory.ordinal,
+                                    uiState.typeCategory,
                                     uiState.typeId,
-                                ) { typeId, typeCategoryCode ->
-                                    onTypeChange(typeId, RecordTypeCategoryEnum.ordinalOf(typeCategoryCode))
+                                ) { typeId ->
+                                    onTypeChange(typeId, uiState.typeCategory)
                                     onBottomSheetDismiss()
                                 }
                             }
@@ -443,7 +443,7 @@ internal fun EditScheduleScreen(
                             },
                             trailingContent = {
                                 Text(
-                                    text = "$${timePickerState.hour.completeZero()}:${timePickerState.minute.completeZero()}",
+                                    text = "${timePickerState.hour.completeZero()}:${timePickerState.minute.completeZero()}",
                                 )
                             },
                         )

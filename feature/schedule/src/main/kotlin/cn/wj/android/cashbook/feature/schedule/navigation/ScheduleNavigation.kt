@@ -21,6 +21,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import cn.wj.android.cashbook.core.model.enums.RecordTypeCategoryEnum
 import cn.wj.android.cashbook.feature.schedule.screen.EditScheduleRoute
 import cn.wj.android.cashbook.feature.schedule.screen.MySchedulesRoute
 import kotlinx.serialization.Serializable
@@ -56,7 +57,7 @@ fun NavGraphBuilder.mySchedulesScreen(
 
 /** 编辑周期规则界面 */
 fun NavGraphBuilder.editScheduleScreen(
-    typeListContent: @Composable (currentTypeCategoryCode: Int, currentTypeId: Long, onTypeChange: (Long, Int) -> Unit) -> Unit,
+    typeListContent: @Composable (typeCategory: RecordTypeCategoryEnum, currentTypeId: Long, onTypeChange: (Long) -> Unit) -> Unit,
     assetBottomSheetContent: @Composable (currentTypeId: Long, selectedAssetId: Long, onAssetChange: (Long) -> Unit) -> Unit,
     onRequestPopBackStack: () -> Unit,
 ) {
