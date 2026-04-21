@@ -21,13 +21,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import cn.wj.android.cashbook.core.data.repository.AssetRepository
+import cn.wj.android.cashbook.core.data.repository.TagRepository
+import cn.wj.android.cashbook.core.data.repository.TypeRepository
 import cn.wj.android.cashbook.core.model.model.ScheduleModel
 import cn.wj.android.cashbook.core.ui.DialogState
 import cn.wj.android.cashbook.domain.usecase.DeleteScheduleUseCase
 import cn.wj.android.cashbook.domain.usecase.GetScheduleListUseCase
 import cn.wj.android.cashbook.domain.usecase.ToggleScheduleEnabledUseCase
+import cn.wj.android.cashbook.feature.schedule.model.ScheduleViewsEntity
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -38,6 +43,9 @@ import javax.inject.Inject
  * @param getScheduleListUseCase 获取周期规则列表用例
  * @param toggleScheduleEnabledUseCase 切换周期规则启用状态用例
  * @param deleteScheduleUseCase 删除周期规则用例
+ * @param typeRepository 类型数据仓库
+ * @param assetRepository 资产数据仓库
+ * @param tagRepository 标签数据仓库
  *
  * > [王杰](mailto:15555650921@163.com) 创建于 2026/4/20
  */
@@ -46,14 +54,41 @@ class MySchedulesViewModel @Inject constructor(
     getScheduleListUseCase: GetScheduleListUseCase,
     private val toggleScheduleEnabledUseCase: ToggleScheduleEnabledUseCase,
     private val deleteScheduleUseCase: DeleteScheduleUseCase,
+    private val typeRepository: TypeRepository,
+    private val assetRepository: AssetRepository,
+    private val tagRepository: TagRepository,
 ) : ViewModel() {
 
     /** 弹窗状态 */
     var dialogState by mutableStateOf<DialogState>(DialogState.Dismiss)
         private set
 
+    /** 当前查看详情的周期规则 */
+    var viewSchedule by mutableStateOf<ScheduleViewsEntity?>(null)
+        private set
+
     /** 周期规则列表 */
     val scheduleListData = getScheduleListUseCase()
+        .mapLatest { list ->
+            list.map { schedule ->
+                val type = typeRepository.getRecordTypeById(schedule.typeId)
+                val asset = if (schedule.assetId > 0) {
+                    assetRepository.getAssetById(schedule.assetId)
+                } else {
+                    null
+                }
+                val tagNames = schedule.tagIdList.mapNotNull {
+                    tagRepository.getTagById(it)?.name
+                }
+                ScheduleViewsEntity(
+                    schedule = schedule,
+                    typeName = type?.name.orEmpty(),
+                    typeIconResName = type?.iconName.orEmpty(),
+                    assetName = asset?.name,
+                    tagNameList = tagNames,
+                )
+            }
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -65,6 +100,16 @@ class MySchedulesViewModel @Inject constructor(
         viewModelScope.launch {
             toggleScheduleEnabledUseCase(schedule.id, !schedule.enabled)
         }
+    }
+
+    /** 显示周期规则详情 BottomSheet */
+    fun showScheduleDetails(schedule: ScheduleViewsEntity) {
+        viewSchedule = schedule
+    }
+
+    /** 隐藏周期规则详情 BottomSheet */
+    fun dismissScheduleDetails() {
+        viewSchedule = null
     }
 
     /** 显示删除周期规则确认弹窗 */
@@ -82,6 +127,7 @@ class MySchedulesViewModel @Inject constructor(
         viewModelScope.launch {
             deleteScheduleUseCase(scheduleId)
             dismissDialog()
+            dismissScheduleDetails()
         }
     }
 }

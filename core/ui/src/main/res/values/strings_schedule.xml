@@ -29,6 +29,8 @@
     <string name="schedule_end_date">结束日期</string>
     <string name="schedule_record_time">记账时间</string>
     <string name="schedule_enabled">启用</string>
+    <string name="schedule_details">周期规则详情</string>
+    <string name="schedule_last_executed_date">上次执行日期</string>
     <string name="select_frequency">选择频率</string>
     <string name="saving">保存中…</string>
     <string name="please_enter_amount">请输入金额</string>
