@@ -23,6 +23,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import cn.wj.android.cashbook.core.common.ext.toAmountCent
 import cn.wj.android.cashbook.core.common.ext.toMoneyFormat
+import cn.wj.android.cashbook.core.data.repository.AssetRepository
 import cn.wj.android.cashbook.core.data.repository.ScheduleRepository
 import cn.wj.android.cashbook.core.data.repository.SettingRepository
 import cn.wj.android.cashbook.core.model.enums.RecordTypeCategoryEnum
@@ -54,6 +55,7 @@ class EditScheduleViewModel @Inject constructor(
     private val scheduleRepository: ScheduleRepository,
     private val saveScheduleUseCase: SaveScheduleUseCase,
     private val settingRepository: SettingRepository,
+    private val assetRepository: AssetRepository,
 ) : ViewModel() {
 
     /** 弹窗状态 */
@@ -78,6 +80,7 @@ class EditScheduleViewModel @Inject constructor(
     /** 界面 UI 状态 */
     val uiState: Flow<EditScheduleUiState> = _displayScheduleData
         .mapLatest { schedule ->
+            val assetText = assetRepository.getAssetById(schedule.assetId)?.name.orEmpty()
             EditScheduleUiState.Success(
                 amountText = schedule.amount.toMoneyFormat(),
                 chargesText = schedule.charges.toMoneyFormat(),
@@ -85,6 +88,7 @@ class EditScheduleViewModel @Inject constructor(
                 typeId = schedule.typeId,
                 typeCategory = schedule.typeCategory,
                 assetId = schedule.assetId,
+                assetText = assetText,
                 frequency = schedule.frequency,
                 startDate = schedule.startDate,
                 endDate = schedule.endDate,
@@ -144,6 +148,18 @@ class EditScheduleViewModel @Inject constructor(
             _mutableScheduleData.tryEmit(
                 _displayScheduleData.first().copy(
                     typeId = typeId,
+                    typeCategory = typeCategory,
+                ),
+            )
+        }
+    }
+
+    /** 更新类型大类（Tab 切换） */
+    fun updateTypeCategory(typeCategory: RecordTypeCategoryEnum) {
+        viewModelScope.launch {
+            _mutableScheduleData.tryEmit(
+                _displayScheduleData.first().copy(
+                    typeId = -1L,
                     typeCategory = typeCategory,
                 ),
             )
@@ -228,6 +244,21 @@ class EditScheduleViewModel @Inject constructor(
         bottomSheetType = EditScheduleBottomSheetEnum.FREQUENCY
     }
 
+    /** 显示金额计算器 sheet */
+    fun showAmountSheet() {
+        bottomSheetType = EditScheduleBottomSheetEnum.AMOUNT
+    }
+
+    /** 显示手续费计算器 sheet */
+    fun showChargesSheet() {
+        bottomSheetType = EditScheduleBottomSheetEnum.CHARGES
+    }
+
+    /** 显示优惠计算器 sheet */
+    fun showConcessionsSheet() {
+        bottomSheetType = EditScheduleBottomSheetEnum.CONCESSIONS
+    }
+
     /** 隐藏 sheet */
     fun dismissBottomSheet() {
         bottomSheetType = EditScheduleBottomSheetEnum.NONE
@@ -292,6 +323,7 @@ sealed interface EditScheduleUiState {
         val typeId: Long,
         val typeCategory: RecordTypeCategoryEnum,
         val assetId: Long,
+        val assetText: String,
         val frequency: ScheduleFrequencyEnum,
         val startDate: Long,
         val endDate: Long?,
@@ -306,4 +338,11 @@ enum class EditScheduleBottomSheetEnum {
     TYPE,
     ASSET,
     FREQUENCY,
+    AMOUNT,
+    CHARGES,
+    CONCESSIONS;
+
+    /** 是否为计算器类型 */
+    val isCalculator: Boolean
+        get() = this == AMOUNT || this == CHARGES || this == CONCESSIONS
 }

@@ -17,22 +17,27 @@
 package cn.wj.android.cashbook.feature.schedule.screen
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ElevatedFilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Switch
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -45,20 +50,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import cn.wj.android.cashbook.core.common.PATTERN_SIGN_MONEY
+import cn.wj.android.cashbook.core.common.Symbol
 import cn.wj.android.cashbook.core.common.ext.completeZero
+import cn.wj.android.cashbook.core.common.ext.withCNY
 import cn.wj.android.cashbook.core.common.tools.dateFormat
+import cn.wj.android.cashbook.core.design.component.Calculator
 import cn.wj.android.cashbook.core.design.component.CbFloatingActionButton
 import cn.wj.android.cashbook.core.design.component.CbHorizontalDivider
 import cn.wj.android.cashbook.core.design.component.CbListItem
 import cn.wj.android.cashbook.core.design.component.CbModalBottomSheet
 import cn.wj.android.cashbook.core.design.component.CbScaffold
+import cn.wj.android.cashbook.core.design.component.CbTab
+import cn.wj.android.cashbook.core.design.component.CbTabRow
 import cn.wj.android.cashbook.core.design.component.CbTextButton
 import cn.wj.android.cashbook.core.design.component.CbTextField
 import cn.wj.android.cashbook.core.design.component.CbTopAppBar
@@ -69,6 +77,8 @@ import cn.wj.android.cashbook.core.model.enums.RecordTypeCategoryEnum
 import cn.wj.android.cashbook.core.model.enums.ScheduleFrequencyEnum
 import cn.wj.android.cashbook.core.ui.LocalProgressDialogController
 import cn.wj.android.cashbook.core.ui.R
+import cn.wj.android.cashbook.core.ui.expand.text
+import cn.wj.android.cashbook.core.ui.expand.typeColor
 import cn.wj.android.cashbook.feature.schedule.viewmodel.EditScheduleBottomSheetEnum
 import cn.wj.android.cashbook.feature.schedule.viewmodel.EditScheduleUiState
 import cn.wj.android.cashbook.feature.schedule.viewmodel.EditScheduleViewModel
@@ -100,9 +110,12 @@ internal fun EditScheduleRoute(
         assetBottomSheetContent = assetBottomSheetContent,
         bottomSheetType = viewModel.bottomSheetType,
         onBottomSheetDismiss = viewModel::dismissBottomSheet,
-        onShowSelectTypeSheet = viewModel::showSelectTypeSheet,
+        onTypeCategorySelect = viewModel::updateTypeCategory,
         onShowSelectAssetSheet = viewModel::showSelectAssetSheet,
         onShowSelectFrequencySheet = viewModel::showSelectFrequencySheet,
+        onShowAmountSheet = viewModel::showAmountSheet,
+        onShowChargesSheet = viewModel::showChargesSheet,
+        onShowConcessionsSheet = viewModel::showConcessionsSheet,
         onTypeChange = viewModel::updateType,
         onAssetChange = viewModel::updateAsset,
         onFrequencyChange = viewModel::updateFrequency,
@@ -122,7 +135,7 @@ internal fun EditScheduleRoute(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun EditScheduleScreen(
     isCreate: Boolean,
@@ -131,9 +144,12 @@ internal fun EditScheduleScreen(
     assetBottomSheetContent: @Composable (currentTypeId: Long, selectedAssetId: Long, onAssetChange: (Long) -> Unit) -> Unit,
     bottomSheetType: EditScheduleBottomSheetEnum,
     onBottomSheetDismiss: () -> Unit,
-    onShowSelectTypeSheet: () -> Unit,
+    onTypeCategorySelect: (RecordTypeCategoryEnum) -> Unit,
     onShowSelectAssetSheet: () -> Unit,
     onShowSelectFrequencySheet: () -> Unit,
+    onShowAmountSheet: () -> Unit,
+    onShowChargesSheet: () -> Unit,
+    onShowConcessionsSheet: () -> Unit,
     onTypeChange: (Long, RecordTypeCategoryEnum) -> Unit,
     onAssetChange: (Long) -> Unit,
     onFrequencyChange: (ScheduleFrequencyEnum) -> Unit,
@@ -149,33 +165,8 @@ internal fun EditScheduleScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val amountErrorText = stringResource(id = R.string.please_enter_amount)
-
-    val amountTextState = remember((uiState as? EditScheduleUiState.Success)?.amountText) {
-        TextFieldState(
-            defaultText = (uiState as? EditScheduleUiState.Success)?.amountText ?: "",
-            validator = { it.isNotBlank() },
-            filter = { it.matches(Regex(PATTERN_SIGN_MONEY)) },
-            errorFor = { amountErrorText },
-        )
-    }
-    val chargesTextState = remember((uiState as? EditScheduleUiState.Success)?.chargesText) {
-        TextFieldState(
-            defaultText = (uiState as? EditScheduleUiState.Success)?.chargesText ?: "",
-            filter = { it.matches(Regex(PATTERN_SIGN_MONEY)) },
-        )
-    }
-    val concessionsTextState = remember((uiState as? EditScheduleUiState.Success)?.concessionsText) {
-        TextFieldState(
-            defaultText = (uiState as? EditScheduleUiState.Success)?.concessionsText ?: "",
-            filter = { it.matches(Regex(PATTERN_SIGN_MONEY)) },
-        )
-    }
-    val remarkTextState = remember((uiState as? EditScheduleUiState.Success)?.remark) {
-        TextFieldState(
-            defaultText = (uiState as? EditScheduleUiState.Success)?.remark ?: "",
-        )
-    }
+    val typeColor = (uiState as? EditScheduleUiState.Success)?.typeCategory?.typeColor
+        ?: MaterialTheme.colorScheme.primary
 
     CbScaffold(
         modifier = modifier,
@@ -183,28 +174,48 @@ internal fun EditScheduleScreen(
             CbTopAppBar(
                 onBackClick = onBackClick,
                 title = {
-                    Text(
-                        text = stringResource(
-                            id = if (isCreate) R.string.new_schedule else R.string.edit_schedule,
-                        ),
-                    )
+                    if (uiState is EditScheduleUiState.Success) {
+                        CbTabRow(
+                            modifier = Modifier.fillMaxSize(),
+                            selectedTabIndex = uiState.typeCategory.ordinal,
+                            containerColor = Color.Unspecified,
+                            contentColor = Color.Unspecified,
+                            indicator = { tabPositions ->
+                                TabRowDefaults.SecondaryIndicator(
+                                    modifier = Modifier.tabIndicatorOffset(tabPositions[uiState.typeCategory.ordinal]),
+                                    color = typeColor,
+                                )
+                            },
+                            divider = {},
+                        ) {
+                            // 周期记账只支持支出和收入
+                            listOf(
+                                RecordTypeCategoryEnum.EXPENDITURE,
+                                RecordTypeCategoryEnum.INCOME,
+                            ).forEach { enum ->
+                                CbTab(
+                                    selected = uiState.typeCategory == enum,
+                                    onClick = { onTypeCategorySelect(enum) },
+                                    text = { Text(text = enum.text) },
+                                    selectedContentColor = typeColor,
+                                    unselectedContentColor = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                        }
+                    } else {
+                        Text(
+                            text = stringResource(
+                                id = if (isCreate) R.string.new_schedule else R.string.edit_schedule,
+                            ),
+                        )
+                    }
                 },
             )
         },
         floatingActionButton = {
             if (uiState is EditScheduleUiState.Success) {
                 CbFloatingActionButton(
-                    onClick = {
-                        if (!amountTextState.isValid) {
-                            amountTextState.requestErrors()
-                        } else {
-                            onAmountChange(amountTextState.text)
-                            onChargesChange(chargesTextState.text)
-                            onConcessionsChange(concessionsTextState.text)
-                            onRemarkChange(remarkTextState.text)
-                            onSaveClick()
-                        }
-                    },
+                    onClick = onSaveClick,
                 ) {
                     Icon(
                         imageVector = CbIcons.SaveAs,
@@ -230,18 +241,17 @@ internal fun EditScheduleScreen(
                             true
                         },
                     ),
+                    dragHandle = if (bottomSheetType.isCalculator) {
+                        null
+                    } else {
+                        @Composable {
+                            androidx.compose.material3.BottomSheetDefaults.DragHandle()
+                        }
+                    },
                 ) {
                     when (bottomSheetType) {
                         EditScheduleBottomSheetEnum.TYPE -> {
-                            if (uiState is EditScheduleUiState.Success) {
-                                typeListContent(
-                                    uiState.typeCategory,
-                                    uiState.typeId,
-                                ) { typeId ->
-                                    onTypeChange(typeId, uiState.typeCategory)
-                                    onBottomSheetDismiss()
-                                }
-                            }
+                            // 类型列表现在直接显示在页面上，不再在 bottom sheet 中
                         }
 
                         EditScheduleBottomSheetEnum.ASSET -> {
@@ -266,6 +276,45 @@ internal fun EditScheduleScreen(
                             )
                         }
 
+                        EditScheduleBottomSheetEnum.AMOUNT -> {
+                            (uiState as? EditScheduleUiState.Success)?.let { data ->
+                                Calculator(
+                                    defaultText = data.amountText,
+                                    primaryColor = typeColor,
+                                    onConfirmClick = {
+                                        onAmountChange(it)
+                                        onBottomSheetDismiss()
+                                    },
+                                )
+                            }
+                        }
+
+                        EditScheduleBottomSheetEnum.CHARGES -> {
+                            (uiState as? EditScheduleUiState.Success)?.let { data ->
+                                Calculator(
+                                    defaultText = data.chargesText,
+                                    primaryColor = typeColor,
+                                    onConfirmClick = {
+                                        onChargesChange(it)
+                                        onBottomSheetDismiss()
+                                    },
+                                )
+                            }
+                        }
+
+                        EditScheduleBottomSheetEnum.CONCESSIONS -> {
+                            (uiState as? EditScheduleUiState.Success)?.let { data ->
+                                Calculator(
+                                    defaultText = data.concessionsText,
+                                    primaryColor = typeColor,
+                                    onConfirmClick = {
+                                        onConcessionsChange(it)
+                                        onBottomSheetDismiss()
+                                    },
+                                )
+                            }
+                        }
+
                         else -> {}
                     }
                 }
@@ -278,134 +327,126 @@ internal fun EditScheduleScreen(
 
                 is EditScheduleUiState.Success -> {
                     Column(
-                        modifier = Modifier.verticalScroll(state = rememberScrollState()),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .verticalScroll(state = rememberScrollState())
+                            .padding(top = 8.dp)
+                            .padding(horizontal = 16.dp),
                     ) {
                         // 金额
-                        CbTextField(
-                            textFieldState = amountTextState,
-                            label = { Text(text = stringResource(id = R.string.amount)) },
-                            keyboardOptions = KeyboardOptions.Default.copy(
-                                imeAction = ImeAction.Next,
-                                keyboardType = KeyboardType.Decimal,
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                                .padding(horizontal = 16.dp),
+                        Amount(
+                            amount = uiState.amountText,
+                            primaryColor = typeColor,
+                            onAmountClick = onShowAmountSheet,
+                        )
+                        CbHorizontalDivider()
+
+                        // 类型标签
+                        Text(
+                            text = stringResource(id = R.string.record_type),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp),
                         )
 
-                        // 手续费
+                        // 类型列表
+                        typeListContent(
+                            uiState.typeCategory,
+                            uiState.typeId,
+                        ) { typeId ->
+                            onTypeChange(typeId, uiState.typeCategory)
+                        }
+
+                        // 备注
+                        val remarkTextState = remember {
+                            TextFieldState(
+                                defaultText = uiState.remark,
+                                filter = { text ->
+                                    onRemarkChange(text)
+                                    true
+                                },
+                            )
+                        }
                         CbTextField(
-                            textFieldState = chargesTextState,
-                            label = { Text(text = stringResource(id = R.string.charges)) },
-                            keyboardOptions = KeyboardOptions.Default.copy(
-                                imeAction = ImeAction.Next,
-                                keyboardType = KeyboardType.Decimal,
-                            ),
+                            textFieldState = remarkTextState,
+                            label = { Text(text = stringResource(id = R.string.remark)) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 8.dp)
-                                .padding(horizontal = 16.dp),
+                                .padding(top = 8.dp),
                         )
 
-                        // 优惠
-                        CbTextField(
-                            textFieldState = concessionsTextState,
-                            label = { Text(text = stringResource(id = R.string.concessions)) },
-                            keyboardOptions = KeyboardOptions.Default.copy(
-                                imeAction = ImeAction.Next,
-                                keyboardType = KeyboardType.Decimal,
-                            ),
+                        // 其他选项
+                        FlowRow(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 8.dp)
-                                .padding(horizontal = 16.dp),
-                        )
-
-                        CbHorizontalDivider(modifier = Modifier.padding(top = 8.dp))
-
-                        // 类型选择
-                        CbListItem(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = onShowSelectTypeSheet),
-                            headlineContent = {
-                                Text(
-                                    text = stringResource(id = R.string.type),
-                                    modifier = Modifier.padding(start = 16.dp),
-                                )
-                            },
-                            trailingContent = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                .padding(top = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            // 资产
+                            val hasAsset = uiState.assetId > 0
+                            ElevatedFilterChip(
+                                selected = hasAsset,
+                                onClick = onShowSelectAssetSheet,
+                                label = {
                                     Text(
-                                        text = if (uiState.typeId > 0) {
-                                            stringResource(id = R.string.selected)
-                                        } else {
-                                            stringResource(id = R.string.please_select)
-                                        },
+                                        text = stringResource(id = R.string.target_asset) +
+                                            if (hasAsset) ":${uiState.assetText}" else "",
                                     )
-                                    Icon(
-                                        imageVector = CbIcons.KeyboardArrowRight,
-                                        contentDescription = null,
-                                    )
-                                }
-                            },
-                        )
+                                },
+                            )
 
-                        // 资产选择
-                        CbListItem(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = onShowSelectAssetSheet),
-                            headlineContent = {
-                                Text(
-                                    text = stringResource(id = R.string.asset),
-                                    modifier = Modifier.padding(start = 16.dp),
-                                )
-                            },
-                            trailingContent = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                            // 记录时间（开始日期 + 时间）
+                            val dateTime = uiState.startDate.dateFormat()
+                            val recordTimeCalendar = Calendar.getInstance().apply {
+                                timeInMillis = uiState.recordTime
+                            }
+                            val timeStr = "${recordTimeCalendar.get(Calendar.HOUR_OF_DAY).completeZero()}:${recordTimeCalendar.get(Calendar.MINUTE).completeZero()}"
+                            ElevatedFilterChip(
+                                selected = true,
+                                onClick = { /* TODO: Open date/time picker */ },
+                                label = { Text(text = "$dateTime $timeStr") },
+                            )
+
+                            // 频率
+                            ElevatedFilterChip(
+                                selected = true,
+                                onClick = onShowSelectFrequencySheet,
+                                label = { Text(text = uiState.frequency.displayName()) },
+                            )
+
+                            // 手续费
+                            val hasCharges = uiState.chargesText.isNotBlank() && uiState.chargesText != "0"
+                            ElevatedFilterChip(
+                                selected = hasCharges,
+                                onClick = onShowChargesSheet,
+                                label = {
                                     Text(
-                                        text = if (uiState.assetId > 0) {
-                                            stringResource(id = R.string.selected)
-                                        } else {
-                                            stringResource(id = R.string.please_select)
-                                        },
+                                        text = stringResource(id = R.string.charges) +
+                                            if (hasCharges) ":${uiState.chargesText.withCNY()}" else "",
                                     )
-                                    Icon(
-                                        imageVector = CbIcons.KeyboardArrowRight,
-                                        contentDescription = null,
-                                    )
-                                }
-                            },
-                        )
+                                },
+                            )
 
-                        // 频率选择
-                        CbListItem(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = onShowSelectFrequencySheet),
-                            headlineContent = {
-                                Text(
-                                    text = stringResource(id = R.string.frequency),
-                                    modifier = Modifier.padding(start = 16.dp),
+                            // 优惠（非收入类型才有）
+                            if (uiState.typeCategory != RecordTypeCategoryEnum.INCOME) {
+                                val hasConcessions = uiState.concessionsText.isNotBlank() && uiState.concessionsText != "0"
+                                ElevatedFilterChip(
+                                    selected = hasConcessions,
+                                    onClick = onShowConcessionsSheet,
+                                    label = {
+                                        Text(
+                                            text = stringResource(id = R.string.concessions) +
+                                                if (hasConcessions) ":${uiState.concessionsText.withCNY()}" else "",
+                                        )
+                                    },
                                 )
-                            },
-                            trailingContent = {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(text = uiState.frequency.displayName())
-                                    Icon(
-                                        imageVector = CbIcons.KeyboardArrowRight,
-                                        contentDescription = null,
-                                    )
-                                }
-                            },
-                        )
+                            }
+                        }
 
                         CbHorizontalDivider(modifier = Modifier.padding(top = 8.dp))
 
                         // 开始日期
-                        val startDatePickerState = rememberDatePickerState(uiState.startDate)
                         DatePickerListItem(
                             label = stringResource(id = R.string.schedule_start_date),
                             dateMs = uiState.startDate,
@@ -450,17 +491,6 @@ internal fun EditScheduleScreen(
 
                         CbHorizontalDivider(modifier = Modifier.padding(top = 8.dp))
 
-                        // 备注
-                        CbTextField(
-                            textFieldState = remarkTextState,
-                            label = { Text(text = stringResource(id = R.string.remark)) },
-                            keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                                .padding(horizontal = 16.dp),
-                        )
-
                         // 启用开关
                         CbListItem(
                             headlineContent = {
@@ -480,6 +510,35 @@ internal fun EditScheduleScreen(
                 }
             }
         }
+    }
+}
+
+/**
+ * 金额显示框
+ */
+@Composable
+private fun Amount(
+    amount: String,
+    primaryColor: Color,
+    onAmountClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onAmountClick),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = Symbol.CNY,
+            color = primaryColor,
+            style = MaterialTheme.typography.titleMedium,
+        )
+        Text(
+            text = amount,
+            color = primaryColor,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(8.dp),
+        )
     }
 }
 

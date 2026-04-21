@@ -32,7 +32,6 @@ class SaveScheduleUseCase @Inject constructor(
     suspend operator fun invoke(schedule: ScheduleModel) = withContext(coroutineContext) {
         require(schedule.amount > 0) { "金额必须大于 0" }
         require(schedule.typeId > 0) { "必须选择类型" }
-        require(schedule.assetId > 0) { "必须选择资产" }
         require(schedule.startDate > 0) { "开始日期无效" }
         require(schedule.recordTime > 0) { "记账时间无效" }
         scheduleRepository.saveSchedule(schedule)
