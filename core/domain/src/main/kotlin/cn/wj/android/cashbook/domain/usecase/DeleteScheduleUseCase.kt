@@ -16,14 +16,19 @@
 
 package cn.wj.android.cashbook.domain.usecase
 
+import cn.wj.android.cashbook.core.data.repository.RecordRepository
 import cn.wj.android.cashbook.core.data.repository.ScheduleRepository
 import javax.inject.Inject
 
 class DeleteScheduleUseCase @Inject constructor(
     private val scheduleRepository: ScheduleRepository,
+    private val recordRepository: RecordRepository,
 ) {
 
-    suspend operator fun invoke(scheduleId: Long) {
+    suspend operator fun invoke(scheduleId: Long, deleteRecords: Boolean = false) {
+        if (deleteRecords) {
+            recordRepository.deleteRecordsByScheduleId(scheduleId)
+        }
         scheduleRepository.deleteSchedule(scheduleId)
     }
 }

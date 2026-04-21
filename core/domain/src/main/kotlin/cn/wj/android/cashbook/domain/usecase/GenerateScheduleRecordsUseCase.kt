@@ -58,6 +58,7 @@ class GenerateScheduleRecordsUseCase @Inject constructor(
                         remark = schedule.remark,
                         reimbursable = schedule.reimbursable,
                         recordTime = combineDateAndTime(dueDate, schedule.recordTime),
+                        scheduleId = schedule.id,
                     )
                     saveRecordUseCase(
                         recordModel = record,

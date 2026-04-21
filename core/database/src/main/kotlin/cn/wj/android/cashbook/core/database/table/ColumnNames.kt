@@ -56,6 +56,7 @@ const val TABLE_RECORD_CHARGE = "charge"
 const val TABLE_RECORD_REMARK = "remark"
 const val TABLE_RECORD_REIMBURSABLE = "reimbursable"
 const val TABLE_RECORD_RECORD_TIME = "record_time"
+const val TABLE_RECORD_SCHEDULE_ID = "schedule_id"
 
 /* 记录关联关系表 */
 const val TABLE_RECORD_RELATED = "db_record_with_related"

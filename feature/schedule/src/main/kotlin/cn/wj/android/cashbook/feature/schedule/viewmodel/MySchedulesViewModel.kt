@@ -123,9 +123,9 @@ class MySchedulesViewModel @Inject constructor(
     }
 
     /** 确认删除 */
-    fun confirmDelete(scheduleId: Long) {
+    fun confirmDelete(scheduleId: Long, deleteRecords: Boolean) {
         viewModelScope.launch {
-            deleteScheduleUseCase(scheduleId)
+            deleteScheduleUseCase(scheduleId, deleteRecords)
             dismissDialog()
             dismissScheduleDetails()
         }

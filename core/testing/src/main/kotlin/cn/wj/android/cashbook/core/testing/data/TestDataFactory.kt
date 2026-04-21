@@ -46,6 +46,7 @@ fun createRecordModel(
     remark: String = "",
     reimbursable: Boolean = false,
     recordTime: Long = 1704067200000L, // 2024-01-01 00:00:00 UTC+8
+    scheduleId: Long = -1L,
 ): RecordModel = RecordModel(
     id = id,
     booksId = booksId,
@@ -59,6 +60,7 @@ fun createRecordModel(
     remark = remark,
     reimbursable = reimbursable,
     recordTime = recordTime,
+    scheduleId = scheduleId,
 )
 
 fun createAssetModel(

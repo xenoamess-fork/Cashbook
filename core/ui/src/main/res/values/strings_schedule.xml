@@ -35,4 +35,7 @@
     <string name="saving">保存中…</string>
     <string name="please_enter_amount">请输入金额</string>
     <string name="selected">已选择</string>
+    <string name="delete_schedule_related_records">同时删除由该规则生成的所有记账</string>
+    <string name="delete_schedule_only">仅删除规则</string>
+    <string name="delete_schedule_with_records">删除规则及记账</string>
 </resources>
