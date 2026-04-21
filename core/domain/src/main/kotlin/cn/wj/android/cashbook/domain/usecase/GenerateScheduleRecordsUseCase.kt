@@ -56,12 +56,12 @@ class GenerateScheduleRecordsUseCase @Inject constructor(
                         charges = schedule.charges,
                         concessions = schedule.concessions,
                         remark = schedule.remark,
-                        reimbursable = false,
+                        reimbursable = schedule.reimbursable,
                         recordTime = combineDateAndTime(dueDate, schedule.recordTime),
                     )
                     saveRecordUseCase(
                         recordModel = record,
-                        tagIdList = emptyList(),
+                        tagIdList = schedule.tagIdList,
                         relatedRecordIdList = emptyList(),
                         relatedImageList = emptyList(),
                     )

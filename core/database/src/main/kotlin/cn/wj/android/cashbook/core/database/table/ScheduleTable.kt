@@ -39,6 +39,8 @@ import androidx.room.PrimaryKey
  * @param recordTime 记账时间（一天中的具体时刻，时间戳）
  * @param lastExecutedDate 上次执行日期（时间戳）
  * @param enabled 是否启用
+ * @param reimbursable 是否可报销
+ * @param tagIds 标签 id 列表，逗号分隔
  *
  * > [王杰](mailto:15555650921@163.com) 创建于 2026/4/20
  */
@@ -67,4 +69,6 @@ data class ScheduleTable(
     @ColumnInfo(name = TABLE_SCHEDULE_RECORD_TIME) val recordTime: Long,
     @ColumnInfo(name = TABLE_SCHEDULE_LAST_EXECUTED_DATE) val lastExecutedDate: Long?,
     @ColumnInfo(name = TABLE_SCHEDULE_ENABLED) val enabled: Int,
+    @ColumnInfo(name = TABLE_SCHEDULE_REIMBURSABLE) val reimbursable: Int,
+    @ColumnInfo(name = TABLE_SCHEDULE_TAG_IDS) val tagIds: String,
 )

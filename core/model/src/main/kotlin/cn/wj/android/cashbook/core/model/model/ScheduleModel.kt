@@ -37,6 +37,8 @@ import cn.wj.android.cashbook.core.model.enums.ScheduleFrequencyEnum
  * @param recordTime 记账时间（一天中的具体时刻，时间戳）
  * @param lastExecutedDate 上次执行日期（时间戳）
  * @param enabled 是否启用
+ * @param reimbursable 是否可报销
+ * @param tagIdList 标签 id 列表
  *
  * > [王杰](mailto:15555650921@163.com) 创建于 2026/4/20
  */
@@ -56,4 +58,6 @@ data class ScheduleModel(
     val recordTime: Long,
     val lastExecutedDate: Long?,
     val enabled: Boolean,
+    val reimbursable: Boolean,
+    val tagIdList: List<Long>,
 )

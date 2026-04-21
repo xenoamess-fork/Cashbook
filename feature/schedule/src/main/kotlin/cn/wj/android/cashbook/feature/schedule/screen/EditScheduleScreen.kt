@@ -39,6 +39,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberTimePickerState
@@ -60,6 +61,7 @@ import cn.wj.android.cashbook.core.common.ext.completeZero
 import cn.wj.android.cashbook.core.common.ext.withCNY
 import cn.wj.android.cashbook.core.common.tools.dateFormat
 import cn.wj.android.cashbook.core.design.component.Calculator
+import cn.wj.android.cashbook.core.design.component.CbAlertDialog
 import cn.wj.android.cashbook.core.design.component.CbFloatingActionButton
 import cn.wj.android.cashbook.core.design.component.CbHorizontalDivider
 import cn.wj.android.cashbook.core.design.component.CbListItem
@@ -92,6 +94,7 @@ internal fun EditScheduleRoute(
     scheduleId: Long,
     typeListContent: @Composable (typeCategory: RecordTypeCategoryEnum, currentTypeId: Long, onTypeChange: (Long) -> Unit) -> Unit,
     assetBottomSheetContent: @Composable (currentTypeId: Long, selectedAssetId: Long, onAssetChange: (Long) -> Unit) -> Unit,
+    tagBottomSheetContent: @Composable (selectedTagIdList: List<Long>, onTagIdListChange: (List<Long>) -> Unit, onRequestDismissSheet: () -> Unit) -> Unit,
     onRequestPopBackStack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: EditScheduleViewModel = hiltViewModel(),
@@ -108,11 +111,13 @@ internal fun EditScheduleRoute(
         uiState = uiState,
         typeListContent = typeListContent,
         assetBottomSheetContent = assetBottomSheetContent,
+        tagBottomSheetContent = tagBottomSheetContent,
         bottomSheetType = viewModel.bottomSheetType,
         onBottomSheetDismiss = viewModel::dismissBottomSheet,
         onTypeCategorySelect = viewModel::updateTypeCategory,
         onShowSelectAssetSheet = viewModel::showSelectAssetSheet,
         onShowSelectFrequencySheet = viewModel::showSelectFrequencySheet,
+        onShowSelectTagSheet = viewModel::showSelectTagSheet,
         onShowAmountSheet = viewModel::showAmountSheet,
         onShowChargesSheet = viewModel::showChargesSheet,
         onShowConcessionsSheet = viewModel::showConcessionsSheet,
@@ -127,6 +132,8 @@ internal fun EditScheduleRoute(
         onConcessionsChange = viewModel::updateConcessions,
         onRemarkChange = viewModel::updateRemark,
         onEnabledChange = viewModel::updateEnabled,
+        onReimbursableClick = viewModel::updateReimbursable,
+        onTagChange = viewModel::updateTagIdList,
         onSaveClick = {
             viewModel.trySave(progressDialogController, savingHintText, onRequestPopBackStack)
         },
@@ -142,11 +149,13 @@ internal fun EditScheduleScreen(
     uiState: EditScheduleUiState,
     typeListContent: @Composable (typeCategory: RecordTypeCategoryEnum, currentTypeId: Long, onTypeChange: (Long) -> Unit) -> Unit,
     assetBottomSheetContent: @Composable (currentTypeId: Long, selectedAssetId: Long, onAssetChange: (Long) -> Unit) -> Unit,
+    tagBottomSheetContent: @Composable (selectedTagIdList: List<Long>, onTagIdListChange: (List<Long>) -> Unit, onRequestDismissSheet: () -> Unit) -> Unit,
     bottomSheetType: EditScheduleBottomSheetEnum,
     onBottomSheetDismiss: () -> Unit,
     onTypeCategorySelect: (RecordTypeCategoryEnum) -> Unit,
     onShowSelectAssetSheet: () -> Unit,
     onShowSelectFrequencySheet: () -> Unit,
+    onShowSelectTagSheet: () -> Unit,
     onShowAmountSheet: () -> Unit,
     onShowChargesSheet: () -> Unit,
     onShowConcessionsSheet: () -> Unit,
@@ -161,6 +170,8 @@ internal fun EditScheduleScreen(
     onConcessionsChange: (String) -> Unit,
     onRemarkChange: (String) -> Unit,
     onEnabledChange: (Boolean) -> Unit,
+    onReimbursableClick: (Boolean) -> Unit,
+    onTagChange: (List<Long>) -> Unit,
     onSaveClick: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -315,6 +326,16 @@ internal fun EditScheduleScreen(
                             }
                         }
 
+                        EditScheduleBottomSheetEnum.TAG -> {
+                            (uiState as? EditScheduleUiState.Success)?.let { data ->
+                                tagBottomSheetContent(
+                                    data.tagIdList,
+                                    onTagChange,
+                                    onBottomSheetDismiss,
+                                )
+                            }
+                        }
+
                         else -> {}
                     }
                 }
@@ -396,23 +417,72 @@ internal fun EditScheduleScreen(
                                 },
                             )
 
-                            // 记录时间（开始日期 + 时间）
-                            val dateTime = uiState.startDate.dateFormat()
+                            // 记账时间
+                            var showTimePicker by remember { mutableStateOf(false) }
                             val recordTimeCalendar = Calendar.getInstance().apply {
                                 timeInMillis = uiState.recordTime
                             }
                             val timeStr = "${recordTimeCalendar.get(Calendar.HOUR_OF_DAY).completeZero()}:${recordTimeCalendar.get(Calendar.MINUTE).completeZero()}"
                             ElevatedFilterChip(
                                 selected = true,
-                                onClick = { /* TODO: Open date/time picker */ },
-                                label = { Text(text = "$dateTime $timeStr") },
+                                onClick = { showTimePicker = true },
+                                label = { Text(text = stringResource(id = R.string.schedule_record_time) + " $timeStr") },
                             )
+
+                            if (showTimePicker) {
+                                val timePickerState = rememberTimePickerState(
+                                    initialHour = recordTimeCalendar.get(Calendar.HOUR_OF_DAY),
+                                    initialMinute = recordTimeCalendar.get(Calendar.MINUTE),
+                                    is24Hour = true,
+                                )
+                                CbAlertDialog(
+                                    onDismissRequest = { showTimePicker = false },
+                                    confirmButton = {
+                                        CbTextButton(
+                                            onClick = {
+                                                val newCalendar = Calendar.getInstance().apply {
+                                                    timeInMillis = uiState.recordTime
+                                                    set(Calendar.HOUR_OF_DAY, timePickerState.hour)
+                                                    set(Calendar.MINUTE, timePickerState.minute)
+                                                    set(Calendar.SECOND, 0)
+                                                    set(Calendar.MILLISECOND, 0)
+                                                }
+                                                onRecordTimeChange(newCalendar.timeInMillis)
+                                                showTimePicker = false
+                                            },
+                                        ) {
+                                            Text(text = stringResource(id = R.string.confirm))
+                                        }
+                                    },
+                                    dismissButton = {
+                                        CbTextButton(onClick = { showTimePicker = false }) {
+                                            Text(text = stringResource(id = R.string.cancel))
+                                        }
+                                    },
+                                    text = {
+                                        TimePicker(state = timePickerState)
+                                    },
+                                )
+                            }
 
                             // 频率
                             ElevatedFilterChip(
                                 selected = true,
                                 onClick = onShowSelectFrequencySheet,
                                 label = { Text(text = uiState.frequency.displayName()) },
+                            )
+
+                            // 标签
+                            val hasTag = uiState.tagText.isNotBlank()
+                            ElevatedFilterChip(
+                                selected = hasTag,
+                                onClick = onShowSelectTagSheet,
+                                label = {
+                                    Text(
+                                        text = stringResource(id = R.string.tags) +
+                                            if (hasTag) ":${uiState.tagText}" else "",
+                                    )
+                                },
                             )
 
                             // 手续费
@@ -427,6 +497,24 @@ internal fun EditScheduleScreen(
                                     )
                                 },
                             )
+
+                            if (uiState.typeCategory == RecordTypeCategoryEnum.EXPENDITURE) {
+                                // 只有支出类型显示是否可报销
+                                val reimbursable = uiState.reimbursable
+                                ElevatedFilterChip(
+                                    selected = reimbursable,
+                                    onClick = { onReimbursableClick(!reimbursable) },
+                                    leadingIcon = {
+                                        if (reimbursable) {
+                                            Icon(
+                                                imageVector = CbIcons.Check,
+                                                contentDescription = null,
+                                            )
+                                        }
+                                    },
+                                    label = { Text(text = stringResource(id = R.string.reimbursable)) },
+                                )
+                            }
 
                             // 优惠（非收入类型才有）
                             if (uiState.typeCategory != RecordTypeCategoryEnum.INCOME) {
@@ -459,34 +547,6 @@ internal fun EditScheduleScreen(
                             dateMs = uiState.endDate,
                             onDateSelected = onEndDateChange,
                             clearable = true,
-                        )
-
-                        // 记账时间
-                        val recordTimeCalendar = Calendar.getInstance().apply {
-                            timeInMillis = uiState.recordTime
-                        }
-                        val timePickerState = rememberTimePickerState(
-                            initialHour = recordTimeCalendar.get(Calendar.HOUR_OF_DAY),
-                            initialMinute = recordTimeCalendar.get(Calendar.MINUTE),
-                            is24Hour = true,
-                        )
-                        CbListItem(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    // Show time picker dialog
-                                },
-                            headlineContent = {
-                                Text(
-                                    text = stringResource(id = R.string.schedule_record_time),
-                                    modifier = Modifier.padding(start = 16.dp),
-                                )
-                            },
-                            trailingContent = {
-                                Text(
-                                    text = "${timePickerState.hour.completeZero()}:${timePickerState.minute.completeZero()}",
-                                )
-                            },
                         )
 
                         CbHorizontalDivider(modifier = Modifier.padding(top = 8.dp))

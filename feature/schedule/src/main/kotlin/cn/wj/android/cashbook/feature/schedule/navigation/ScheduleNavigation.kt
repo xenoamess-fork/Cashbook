@@ -59,6 +59,7 @@ fun NavGraphBuilder.mySchedulesScreen(
 fun NavGraphBuilder.editScheduleScreen(
     typeListContent: @Composable (typeCategory: RecordTypeCategoryEnum, currentTypeId: Long, onTypeChange: (Long) -> Unit) -> Unit,
     assetBottomSheetContent: @Composable (currentTypeId: Long, selectedAssetId: Long, onAssetChange: (Long) -> Unit) -> Unit,
+    tagBottomSheetContent: @Composable (selectedTagIdList: List<Long>, onTagIdListChange: (List<Long>) -> Unit, onRequestDismissSheet: () -> Unit) -> Unit,
     onRequestPopBackStack: () -> Unit,
 ) {
     composable<EditSchedule> { backStackEntry ->
@@ -67,6 +68,7 @@ fun NavGraphBuilder.editScheduleScreen(
             scheduleId = route.scheduleId,
             typeListContent = typeListContent,
             assetBottomSheetContent = assetBottomSheetContent,
+            tagBottomSheetContent = tagBottomSheetContent,
             onRequestPopBackStack = onRequestPopBackStack,
         )
     }

@@ -56,6 +56,8 @@ internal fun ScheduleTable.asModel(): ScheduleModel {
         recordTime = this.recordTime,
         lastExecutedDate = this.lastExecutedDate,
         enabled = this.enabled == SWITCH_INT_ON,
+        reimbursable = this.reimbursable == SWITCH_INT_ON,
+        tagIdList = this.tagIds.split(",").filter { it.isNotBlank() }.map { it.toLong() },
     )
 }
 
@@ -76,5 +78,7 @@ internal fun ScheduleModel.asTable(): ScheduleTable {
         recordTime = this.recordTime,
         lastExecutedDate = this.lastExecutedDate,
         enabled = if (this.enabled) SWITCH_INT_ON else SWITCH_INT_OFF,
+        reimbursable = if (this.reimbursable) SWITCH_INT_ON else SWITCH_INT_OFF,
+        tagIds = this.tagIdList.joinToString(","),
     )
 }

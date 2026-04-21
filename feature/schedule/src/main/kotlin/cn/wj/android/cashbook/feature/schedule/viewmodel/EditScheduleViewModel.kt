@@ -26,12 +26,14 @@ import cn.wj.android.cashbook.core.common.ext.toMoneyFormat
 import cn.wj.android.cashbook.core.data.repository.AssetRepository
 import cn.wj.android.cashbook.core.data.repository.ScheduleRepository
 import cn.wj.android.cashbook.core.data.repository.SettingRepository
+import cn.wj.android.cashbook.core.data.repository.TagRepository
 import cn.wj.android.cashbook.core.model.enums.RecordTypeCategoryEnum
 import cn.wj.android.cashbook.core.model.enums.ScheduleFrequencyEnum
 import cn.wj.android.cashbook.core.model.model.ScheduleModel
 import cn.wj.android.cashbook.core.ui.DialogState
 import cn.wj.android.cashbook.core.ui.ProgressDialogController
 import cn.wj.android.cashbook.core.ui.runCatchWithProgress
+import cn.wj.android.cashbook.domain.usecase.GenerateScheduleRecordsUseCase
 import cn.wj.android.cashbook.domain.usecase.SaveScheduleUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -54,8 +56,10 @@ import javax.inject.Inject
 class EditScheduleViewModel @Inject constructor(
     private val scheduleRepository: ScheduleRepository,
     private val saveScheduleUseCase: SaveScheduleUseCase,
+    private val generateScheduleRecordsUseCase: GenerateScheduleRecordsUseCase,
     private val settingRepository: SettingRepository,
     private val assetRepository: AssetRepository,
+    private val tagRepository: TagRepository,
 ) : ViewModel() {
 
     /** 弹窗状态 */
@@ -81,6 +85,9 @@ class EditScheduleViewModel @Inject constructor(
     val uiState: Flow<EditScheduleUiState> = _displayScheduleData
         .mapLatest { schedule ->
             val assetText = assetRepository.getAssetById(schedule.assetId)?.name.orEmpty()
+            val tagText = schedule.tagIdList.mapNotNull {
+                tagRepository.getTagById(it)?.name
+            }.joinToString(",")
             EditScheduleUiState.Success(
                 amountText = schedule.amount.toMoneyFormat(),
                 chargesText = schedule.charges.toMoneyFormat(),
@@ -95,6 +102,9 @@ class EditScheduleViewModel @Inject constructor(
                 recordTime = schedule.recordTime,
                 remark = schedule.remark,
                 enabled = schedule.enabled,
+                reimbursable = schedule.reimbursable,
+                tagIdList = schedule.tagIdList,
+                tagText = tagText,
             )
         }
         .stateIn(
@@ -229,6 +239,24 @@ class EditScheduleViewModel @Inject constructor(
         }
     }
 
+    /** 更新可报销状态 */
+    fun updateReimbursable(reimbursable: Boolean) {
+        viewModelScope.launch {
+            _mutableScheduleData.tryEmit(
+                _displayScheduleData.first().copy(reimbursable = reimbursable),
+            )
+        }
+    }
+
+    /** 更新标签列表 */
+    fun updateTagIdList(tagIdList: List<Long>) {
+        viewModelScope.launch {
+            _mutableScheduleData.tryEmit(
+                _displayScheduleData.first().copy(tagIdList = tagIdList),
+            )
+        }
+    }
+
     /** 显示选择类型 sheet */
     fun showSelectTypeSheet() {
         bottomSheetType = EditScheduleBottomSheetEnum.TYPE
@@ -259,6 +287,11 @@ class EditScheduleViewModel @Inject constructor(
         bottomSheetType = EditScheduleBottomSheetEnum.CONCESSIONS
     }
 
+    /** 显示选择标签 sheet */
+    fun showSelectTagSheet() {
+        bottomSheetType = EditScheduleBottomSheetEnum.TAG
+    }
+
     /** 隐藏 sheet */
     fun dismissBottomSheet() {
         bottomSheetType = EditScheduleBottomSheetEnum.NONE
@@ -279,6 +312,10 @@ class EditScheduleViewModel @Inject constructor(
             runCatchWithProgress(controller, hintText) {
                 val schedule = _displayScheduleData.first()
                 saveScheduleUseCase(schedule)
+                // 保存成功后，立即检查并生成逾期记录
+                if (schedule.enabled) {
+                    generateScheduleRecordsUseCase()
+                }
                 onSuccess()
             }
         }
@@ -310,6 +347,8 @@ class EditScheduleViewModel @Inject constructor(
             recordTime = System.currentTimeMillis(),
             lastExecutedDate = null,
             enabled = true,
+            reimbursable = false,
+            tagIdList = emptyList(),
         )
     }
 }
@@ -330,6 +369,9 @@ sealed interface EditScheduleUiState {
         val recordTime: Long,
         val remark: String,
         val enabled: Boolean,
+        val reimbursable: Boolean,
+        val tagIdList: List<Long>,
+        val tagText: String,
     ) : EditScheduleUiState
 }
 
@@ -340,7 +382,8 @@ enum class EditScheduleBottomSheetEnum {
     FREQUENCY,
     AMOUNT,
     CHARGES,
-    CONCESSIONS;
+    CONCESSIONS,
+    TAG;
 
     /** 是否为计算器类型 */
     val isCalculator: Boolean

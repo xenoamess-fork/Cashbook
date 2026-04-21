@@ -16,6 +16,7 @@
 
 package cn.wj.android.cashbook.feature.schedule.screen
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -178,7 +179,8 @@ private fun ScheduleListItem(
         },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp),
+            .padding(horizontal = 8.dp)
+            .clickable(onClick = onItemClick),
     )
 }
 

@@ -207,6 +207,8 @@ fun createScheduleModel(
     recordTime: Long = 1704067200000L,
     lastExecutedDate: Long? = null,
     enabled: Boolean = true,
+    reimbursable: Boolean = false,
+    tagIdList: List<Long> = emptyList(),
 ): ScheduleModel = ScheduleModel(
     id = id,
     booksId = booksId,
@@ -223,4 +225,6 @@ fun createScheduleModel(
     recordTime = recordTime,
     lastExecutedDate = lastExecutedDate,
     enabled = enabled,
+    reimbursable = reimbursable,
+    tagIdList = tagIdList,
 )

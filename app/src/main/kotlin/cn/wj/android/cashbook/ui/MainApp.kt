@@ -625,6 +625,13 @@ fun CashbookNavHost(
                     onRequestNaviToEditAsset = navController::naviToEditAsset,
                 )
             },
+            tagBottomSheetContent = { selectedTagIdList, onTagIdListChange, onRequestDismissSheet ->
+                EditRecordSelectTagBottomSheetContent(
+                    selectedTagIdList = selectedTagIdList,
+                    onTagIdListChange = onTagIdListChange,
+                    onRequestDismissSheet = onRequestDismissSheet,
+                )
+            },
             onRequestPopBackStack = navController::popBackStackSafety,
         )
     }
