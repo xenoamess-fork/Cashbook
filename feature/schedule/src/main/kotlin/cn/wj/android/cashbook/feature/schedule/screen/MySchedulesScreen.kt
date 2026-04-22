@@ -144,7 +144,7 @@ internal fun MySchedulesScreen(
             // 删除确认弹窗
             if (dialogState is DialogState.Shown<*>) {
                 (dialogState.data as? ScheduleModel)?.let { schedule ->
-                    var deleteRecords by remember { mutableStateOf(false) }
+                    var deleteRecords by remember(dialogState) { mutableStateOf(false) }
                     CbAlertDialog(
                         onDismissRequest = onDismissDialog,
                         title = { Text(text = stringResource(id = R.string.delete_schedule)) },

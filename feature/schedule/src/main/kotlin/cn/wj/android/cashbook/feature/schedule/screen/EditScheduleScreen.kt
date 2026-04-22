@@ -379,7 +379,7 @@ internal fun EditScheduleScreen(
                         }
 
                         // 备注
-                        val remarkTextState = remember {
+                        val remarkTextState = remember(uiState.remark) {
                             TextFieldState(
                                 defaultText = uiState.remark,
                                 filter = { text ->

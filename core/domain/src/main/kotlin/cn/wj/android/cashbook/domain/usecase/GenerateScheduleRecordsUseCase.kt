@@ -77,8 +77,23 @@ class GenerateScheduleRecordsUseCase @Inject constructor(
 
     private fun calculateDueDates(schedule: ScheduleModel, currentTimeMs: Long): List<Long> {
         val dueDates = mutableListOf<Long>()
-        val baseDate = schedule.lastExecutedDate ?: schedule.startDate
-        val calendar = Calendar.getInstance().apply { timeInMillis = baseDate }
+
+        val lastExecuted = schedule.lastExecutedDate
+        val baseDate = if (lastExecuted != null) {
+            // 已执行过，以上次执行日期为基准
+            lastExecuted
+        } else {
+            // 从未执行过，以 startDate 的前一个周期为基准，
+            // 这样第一次 add 就得到 startDate 本身
+            val cal = Calendar.getInstance().apply { timeInMillis = schedule.startDate }
+            when (schedule.frequency) {
+                ScheduleFrequencyEnum.DAILY -> cal.add(Calendar.DAY_OF_MONTH, -1)
+                ScheduleFrequencyEnum.WEEKLY -> cal.add(Calendar.DAY_OF_MONTH, -7)
+                ScheduleFrequencyEnum.MONTHLY -> cal.add(Calendar.MONTH, -1)
+                ScheduleFrequencyEnum.YEARLY -> cal.add(Calendar.YEAR, -1)
+            }
+            cal.timeInMillis
+        }
 
         // 去掉时间部分，只保留日期
         val baseCalendar = Calendar.getInstance().apply {
